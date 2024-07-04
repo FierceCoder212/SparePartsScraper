@@ -28,7 +28,7 @@ class PartScraper:
         if not os.path.exists(self.image_directory):
             os.makedirs(self.image_directory)
         chrome_options = Options()
-        # chrome_options.add_argument("--headless")  # Run in headless mode
+        chrome_options.add_argument("--headless")  # Run in headless mode
         chrome_options.add_argument("--disable-images")  # Disable images
         chrome_options.add_argument("--incognito")  # Run in incognito mode
         chrome_options.add_argument("--user-agent=Mozilla/5.0")  # Set a simple user agent string
