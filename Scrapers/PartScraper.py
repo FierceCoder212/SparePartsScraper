@@ -1,4 +1,3 @@
-import asyncio
 import os
 import random
 import re
@@ -6,7 +5,13 @@ import time
 
 import requests
 from bs4 import BeautifulSoup, Tag
-from playwright.async_api import async_playwright, TimeoutError
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 from Helpers.SqlLiteHelper import SQLiteHelper
 from Models.PartCategoryModel import PartCategoryModel
@@ -17,80 +22,85 @@ from Models.PartScraperModel import PartScraperModel
 class PartScraper:
     def __init__(self, parts_model: list[PartScraperModel]):
         self.parts_model = parts_model
-        self.p = async_playwright()
         self.parts_for_saving = []
         self.sql_lite_helper = SQLiteHelper('Scraped Parts.db')
         self.image_directory = 'Images'
         if not os.path.exists(self.image_directory):
             os.makedirs(self.image_directory)
+        chrome_options = Options()
+        # chrome_options.add_argument("--headless")  # Run in headless mode
+        chrome_options.add_argument("--disable-images")  # Disable images
+        chrome_options.add_argument("--incognito")  # Run in incognito mode
+        chrome_options.add_argument("--user-agent=Mozilla/5.0")  # Set a simple user agent string
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
 
-    async def scrape_parts_models(self):
+    def scrape_parts_models(self):
         index = 0
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)
-            page = await browser.new_page()
-            for part in self.parts_model:
-                print(f'Current Index {index}')
-                await self.scrape_url(part_model=part, page=page)
-                index += 1
+        for part in self.parts_model:
+            print(f'Current Index {index} out of {len(self.parts_model)}')
+            self.scrape_url(part_model=part)
+            index += 1
+        self.driver.quit()
 
-    async def scrape_url(self, part_model: PartScraperModel, page) -> None:
+    def scrape_url(self, part_model: PartScraperModel) -> None:
         print(f'Getting category from url : {part_model.url}')
-        await page.goto(part_model.url)
-        part_category_models = await self.get_part_categories(base_url=part_model.url, page=page)
+        self.driver.get(part_model.url)
+        part_category_models = self.get_part_categories(base_url=part_model.url)
         for category in part_category_models:
-            await self.get_category_part_items(part_category_model=category,
-                                               code=part_model.model_code,
-                                               page=page)
+            self.get_category_part_items(part_category_model=category, code=part_model.model_code)
 
-    @staticmethod
-    async def get_part_categories(base_url: str, page) -> list[PartCategoryModel]:
+    def get_part_categories(self, base_url: str) -> list[PartCategoryModel]:
         error_count = 0
         retries = 0
         while True:
             try:
-                parts_container = await page.wait_for_selector(
-                    'div.row.model-line-categories#opened, div.row.model-lines#opened')
+                parts_container = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, 'div.row.model-line-categories#opened, div.row.model-lines#opened'))
+                )
                 if not parts_container:
                     raise TimeoutError()
                 break
             except TimeoutError:
                 error_count += 1
                 print(f'Error at categories url : {base_url}')
-                await asyncio.sleep(random.randint(2, 5))
+                time.sleep(random.randint(2, 5))
                 if error_count > 5:
                     retries += 1
                     if retries >= 2:
                         return []
-                    await page.reload()
-        html_content = await parts_container.inner_html()
+                    self.driver.refresh()
+        html_content = parts_container.get_attribute('innerHTML')
         soup = BeautifulSoup(html_content, 'html.parser')
         parts_list = soup.select('div.model-line-category a')
-        parts_data = [PartCategoryModel(url=part['href'], base_url=base_url, name=part.get_text(strip=True)) for part
-                      in parts_list]
+        parts_data = [PartCategoryModel(url=part['href'], base_url=base_url, name=part.get_text(strip=True)) for part in
+                      parts_list]
         return parts_data
 
-    async def get_category_part_items(self, part_category_model: PartCategoryModel, code: str, page) -> None:
+    def get_category_part_items(self, part_category_model: PartCategoryModel, code: str) -> None:
         print(f'Getting items for url : {part_category_model.url}')
-        await page.goto(part_category_model.url)
+        self.driver.get(part_category_model.url)
         error_count = 0
         retries = 0
         while True:
             try:
-                present = await page.wait_for_selector('div#model-line-category')
+                present = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div#model-line-category'))
+                )
                 if not present:
                     raise TimeoutError()
                 break
             except TimeoutError:
                 error_count += 1
                 print(f'Error at parts url : {part_category_model.url}')
-                await asyncio.sleep(random.randint(2, 5))
+                time.sleep(random.randint(2, 5))
                 if error_count > 5:
                     retries += 1
                     if retries >= 2:
                         return
-                    await page.reload()
-        html_content = await page.content()
+                    self.driver.refresh()
+        html_content = self.driver.page_source
         soup = BeautifulSoup(html_content, 'html.parser')
         table_parts = soup.select('table#tblParts tr.part')
         table_parts_items = [self.get_part_item(table_part=part) for part in table_parts]
@@ -115,7 +125,7 @@ class PartScraper:
                 break
             except Exception as ex:
                 print(f'Exception at getting image : {str(ex)}')
-                time.sleep(random.Random().randint(2, 5))
+                time.sleep(random.randint(2, 5))
         file_name = f'{self.sanitize_filename(f'{model_code}-{category_name}')}.jpg'
         if response.status_code == 200:
             with open(f'{self.image_directory}/{file_name}', 'wb') as file:
