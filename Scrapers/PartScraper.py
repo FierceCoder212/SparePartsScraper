@@ -27,7 +27,7 @@ class PartScraper:
     async def scrape_parts_models(self):
         index = 0
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=False)
             page = await browser.new_page()
             for part in self.parts_model:
                 print(f'Current Index {index}')

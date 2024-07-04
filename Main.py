@@ -10,7 +10,7 @@ sql_lite_helper = SQLiteHelper('Scraped Parts.db')
 unique_codes = sql_lite_helper.get_sgl_codes()
 
 # Load JSON data
-with open('url_data.json', 'r') as json_file:
+with open('part_1.json', 'r') as json_file:
     data = json.loads(json_file.read())
 model_data = [PartScraperModel(model_code=d["SGL Unique Model Code"], url=d["Catalogue Link"]) for d in data if
               d["SGL Unique Model Code"] not in unique_codes]
