@@ -111,7 +111,7 @@ class PartScraper:
 
     @staticmethod
     def get_part_item(table_part: Tag) -> PartItemModel:
-        part_id = table_part.select_one('td.hotspotid')
+        part_id = table_part.select_one('td.hotspotid, td.part-hotspotid')
         name = table_part.select_one('span.part-name').text
         code = table_part.select_one('td.part-code').text
         return PartItemModel(part_id=part_id.text if part_id else None, part_name=name, part_code=code)
