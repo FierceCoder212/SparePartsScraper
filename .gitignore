@@ -1,0 +1,5 @@
+Images
+*.db
+*.json
+.idea
+*__pycache__
