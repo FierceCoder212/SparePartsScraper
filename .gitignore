@@ -3,3 +3,7 @@ Images
 *.json
 .idea
 *__pycache__
+Models
+DataParts
+Databases
+.venv

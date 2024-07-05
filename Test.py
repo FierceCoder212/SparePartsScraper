@@ -18,24 +18,24 @@ def split_list(lst, n):
 
 def save_parts_as_json(parts):
     for i, part in enumerate(parts):
-        filename = f"part_{i + 1}.json"
+        filename = f"part_{i + 1}_remaining.json"
         with open(filename, 'w') as f:
             json.dump(part, f, indent=4)
 
 
-sql_lite_helper = SQLiteHelper('Scraped Parts.db')
-unique_codes = sql_lite_helper.get_sgl_codes()
+# sql_lite_helper = SQLiteHelper('Scraped Parts.db')
+# unique_codes = sql_lite_helper.get_sgl_codes()
 
 # Load JSON data
-with open('url_data.json', 'r') as json_file:
+with open('part_remaining.json', 'r') as json_file:
     data = json.loads(json_file.read())
-model_data = [d for d in data if
-              d["SGL Unique Model Code"] not in unique_codes]
+# model_data = [d for d in data if
+#               d["SGL Unique Model Code"] not in unique_codes]
 
-n = 5  # Number of parts to split the list into
+n = 6  # Number of parts to split the list into
 
 # Split the list into n parts
-parts = split_list(model_data, n)
+parts = split_list(data, n)
 
 # Save each part as a new JSON file
 save_parts_as_json(parts)

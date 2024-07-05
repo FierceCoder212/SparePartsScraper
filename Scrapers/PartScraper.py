@@ -49,6 +49,8 @@ class PartScraper:
         part_category_models = self.get_part_categories(base_url=part_model.url)
         for category in part_category_models:
             self.get_category_part_items(part_category_model=category, code=part_model.model_code)
+        if not part_category_models:
+            self.insert_records([], part_model.model_code, '', '')
 
     def get_part_categories(self, base_url: str) -> list[PartCategoryModel]:
         error_count = 0

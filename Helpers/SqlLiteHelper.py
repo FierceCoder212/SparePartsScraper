@@ -1,5 +1,8 @@
 import sqlite3
 from sqlite3 import Error
+import threading
+
+lock = threading.Lock()  # Initialize a lock
 
 
 class SQLiteHelper:
@@ -12,7 +15,7 @@ class SQLiteHelper:
     def create_connection(self):
         """ create a database connection to the SQLite database """
         try:
-            conn = sqlite3.connect(self.db_file)
+            conn = sqlite3.connect(self.db_file, check_same_thread=False)
             print(f'Connected to SQLite database {self.db_file}')
         except Error as e:
             print(e)
@@ -23,10 +26,11 @@ class SQLiteHelper:
         """ Retrieve distinct sgl_unique_model_code values from Parts table """
         select_sql = 'SELECT DISTINCT sgl_unique_model_code FROM Parts'
         try:
-            c = self.conn.cursor()
-            c.execute(select_sql)
-            data = c.fetchall()
-            return [row[0] for row in data]
+            with lock:
+                c = self.conn.cursor()
+                c.execute(select_sql)
+                data = c.fetchall()
+                return [row[0] for row in data]
         except Error as e:
             print(e)
 
@@ -42,32 +46,66 @@ class SQLiteHelper:
         section_diagram TEXT NOT NULL
         );'''
         try:
-            c = self.conn.cursor()
-            c.execute(create_table_sql)
+            with lock:
+                c = self.conn.cursor()
+                c.execute(create_table_sql)
         except Error as e:
             print(e)
 
     def insert_record(self, record):
         """ insert a new record into the parts table """
         sql = 'INSERT INTO parts(sgl_unique_model_code, section, part_number, description, item_number, section_diagram) VALUES(?,?,?,?,?,?)'
-        cur = self.conn.cursor()
-        cur.execute(sql, (
-            record['sgl_unique_model_code'], record['section'], record['part_number'], record['description'],
-            record['item_number'], record['section_diagram']))
-        self.conn.commit()
-        return cur.lastrowid
+        try:
+            with lock:
+                cur = self.conn.cursor()
+                cur.execute(sql, (
+                    record['sgl_unique_model_code'], record['section'], record['part_number'], record['description'],
+                    record['item_number'], record['section_diagram']))
+                self.conn.commit()
+                return cur.lastrowid
+        except Error as e:
+            print(e)
 
     def insert_many_records(self, records):
         """ insert multiple records into the parts table """
         sql = 'INSERT INTO parts(sgl_unique_model_code, section, part_number, description, item_number, section_diagram) VALUES(?,?,?,?,?,?)'
-        cur = self.conn.cursor()
-        cur.executemany(sql, [(record['sgl_unique_model_code'], record['section'], record['part_number'],
-                               record['description'], record['item_number'], record['section_diagram']) for record in
-                              records])
-        self.conn.commit()
+        try:
+            with lock:
+                cur = self.conn.cursor()
+                cur.executemany(sql, [(record['sgl_unique_model_code'], record['section'], record['part_number'],
+                                       record['description'], record['item_number'], record['section_diagram']) for
+                                      record in
+                                      records])
+                self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def insert_many_records_tuple(self, records):
+        """ insert multiple records into the parts table """
+        sql = 'INSERT INTO parts(sgl_unique_model_code, section, part_number, description, item_number, section_diagram) VALUES(?,?,?,?,?,?)'
+        try:
+            with lock:
+                cur = self.conn.cursor()
+                cur.executemany(sql, records)
+                self.conn.commit()
+        except Error as e:
+            print(e)
+
+    def get_all(self):
+        """ Retrieve all records from the parts table """
+        sql = 'SELECT sgl_unique_model_code, section, part_number, description, item_number, section_diagram FROM parts;'
+        try:
+            with self.lock:
+                c = self.conn.cursor()
+                c.execute(sql)
+                data = c.fetchall()
+                return data
+        except Error as e:
+            print(e)
 
     def close_connection(self):
         """ close the database connection """
-        if self.conn:
-            self.conn.close()
-            print(f'Connection to SQLite database {self.db_file} closed')
+        with self.lock:
+            if self.conn:
+                self.conn.close()
+                print(f'Connection to SQLite database {self.db_file} closed')

@@ -10,11 +10,12 @@ sql_lite_helper = SQLiteHelper('Scraped Parts.db')
 unique_codes = sql_lite_helper.get_sgl_codes()
 
 # Load JSON data
-with open('part_1.json', 'r') as json_file:
+with open(r"D:\Workspace\Projects\SparePartsScrapper\DataParts\New Parts\part_2_remaining.json", 'r',) as json_file:
     data = json.loads(json_file.read())
 model_data = [PartScraperModel(model_code=d["SGL Unique Model Code"], url=d["Catalogue Link"]) for d in data if
               d["SGL Unique Model Code"] not in unique_codes]
 
+print(f'Total data {len(model_data)}')
 
 # Function to split the list into chunks
 def chunkify(lst, n):
@@ -25,11 +26,11 @@ def chunkify(lst, n):
 # Function to scrape data
 def scrape_data(model_data_chunk):
     scraper = PartScraper(parts_model=model_data_chunk)
-    asyncio.run(scraper.scrape_parts_models())
+    scraper.scrape_parts_models()
 
 
 # Number of threads based on the number of headers
-no_of_threads = 5
+no_of_threads = 20
 model_data_chunks = chunkify(model_data, no_of_threads)
 
 # Run the scrape_data function in concurrent threads
