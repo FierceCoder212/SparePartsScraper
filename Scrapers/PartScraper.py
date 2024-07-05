@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
 from Helpers.SqlLiteHelper import SQLiteHelper
@@ -62,9 +63,9 @@ class PartScraper:
                         (By.CSS_SELECTOR, 'div.row.model-line-categories#opened, div.row.model-lines#opened'))
                 )
                 if not parts_container:
-                    raise TimeoutError()
+                    raise TimeoutException()
                 break
-            except TimeoutError:
+            except TimeoutException:
                 error_count += 1
                 print(f'Error at categories url : {base_url}')
                 time.sleep(random.randint(2, 5))
@@ -91,9 +92,9 @@ class PartScraper:
                     EC.presence_of_element_located((By.CSS_SELECTOR, 'div#model-line-category'))
                 )
                 if not present:
-                    raise TimeoutError()
+                    raise TimeoutException()
                 break
-            except TimeoutError:
+            except TimeoutException:
                 error_count += 1
                 print(f'Error at parts url : {part_category_model.url}')
                 time.sleep(random.randint(2, 5))
