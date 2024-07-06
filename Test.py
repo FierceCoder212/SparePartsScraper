@@ -29,13 +29,14 @@ def save_parts_as_json(parts):
 # Load JSON data
 with open('part_remaining.json', 'r') as json_file:
     data = json.loads(json_file.read())
-# model_data = [d for d in data if
-#               d["SGL Unique Model Code"] not in unique_codes]
-
-n = 6  # Number of parts to split the list into
-
-# Split the list into n parts
-parts = split_list(data, n)
-
-# Save each part as a new JSON file
-save_parts_as_json(parts)
+print(len(data))
+# # model_data = [d for d in data if
+# #               d["SGL Unique Model Code"] not in unique_codes]
+#
+# n = 6  # Number of parts to split the list into
+#
+# # Split the list into n parts
+# parts = split_list(data, n)
+#
+# # Save each part as a new JSON file
+# save_parts_as_json(parts)

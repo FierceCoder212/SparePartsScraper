@@ -10,12 +10,13 @@ sql_lite_helper = SQLiteHelper('Scraped Parts.db')
 unique_codes = sql_lite_helper.get_sgl_codes()
 
 # Load JSON data
-with open(r"D:\Workspace\Projects\SparePartsScrapper\DataParts\New Parts\part_2_remaining.json", 'r',) as json_file:
+with open(r"part_remaining.json", 'r', ) as json_file:
     data = json.loads(json_file.read())
 model_data = [PartScraperModel(model_code=d["SGL Unique Model Code"], url=d["Catalogue Link"]) for d in data if
               d["SGL Unique Model Code"] not in unique_codes]
 
 print(f'Total data {len(model_data)}')
+
 
 # Function to split the list into chunks
 def chunkify(lst, n):

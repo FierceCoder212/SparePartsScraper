@@ -95,7 +95,7 @@ class SQLiteHelper:
         """ Retrieve all records from the parts table """
         sql = 'SELECT sgl_unique_model_code, section, part_number, description, item_number, section_diagram FROM parts;'
         try:
-            with self.lock:
+            with lock:
                 c = self.conn.cursor()
                 c.execute(sql)
                 data = c.fetchall()
@@ -105,7 +105,7 @@ class SQLiteHelper:
 
     def close_connection(self):
         """ close the database connection """
-        with self.lock:
+        with lock:
             if self.conn:
                 self.conn.close()
                 print(f'Connection to SQLite database {self.db_file} closed')
